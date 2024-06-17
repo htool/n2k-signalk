@@ -15,7 +15,7 @@ module.exports = [
       var idx = 0
       return n2k.fields.list.map(wp => {
         return {
-          name: wp['WP Name'].replace(/\0.*$/g, ''),
+          name: wp['WP Name'],
           position: {
             value: {
               latitude: wp['WP Latitude'],
