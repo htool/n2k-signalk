@@ -4,6 +4,11 @@ var debug = require('debug')('signalk:n2k-signalk')
 const toPgn = require('@canboat/canboatjs').toPgn
 const Uint64LE = require('int64-buffer').Uint64LE
 const PGN = require('@canboat/ts-pgns').PGN
+const {
+  applyQuirksToN2k,
+  toCanboatQuirks,
+  toCanboatOptions
+} = require('./quirks')
 
 require('util').inherits(N2kMapper, EventEmitter)
 
@@ -17,11 +22,26 @@ Object.assign(n2kMappings, require('./actisense'))
 Object.assign(n2kMappings, require('./digitalyacht'))
 Object.assign(n2kMappings, require('./simrad'))
 
+function collectQuirksFromPropertyValues (values) {
+  const enabled = []
+  ;(values || [])
+    .filter(v => v !== undefined && v.value !== undefined)
+    .forEach(pv => {
+      toCanboatQuirks(pv.value).forEach(id => {
+        if (enabled.indexOf(id) === -1) {
+          enabled.push(id)
+        }
+      })
+    })
+  return enabled
+}
+
 function N2kMapper (options) {
   this.state = {}
   this.unknownPGNs = {}
   this.customPgns = {}
   this.options = options || {}
+  this.quirks = toCanboatQuirks(this.options)
 
   if (this.options.onPropertyValues) {
     this.options.onPropertyValues('pgn-to-signalk', values => {
@@ -40,6 +60,10 @@ function N2kMapper (options) {
             }
           })
         })
+    })
+    this.options.onPropertyValues('canboatjs-quirks', values => {
+      this.quirks = collectQuirksFromPropertyValues(values)
+      debug('quirks from property values: %j', this.quirks)
     })
   }
 }
@@ -157,12 +181,15 @@ N2kMapper.prototype.toDelta = function (n2k) {
         })
       }
     }
-    return toDelta(n2k, this.state, this.customPgns)
+    return toDelta(n2k, this.state, this.customPgns, { quirks: this.quirks })
   }
 }
 
-var toDelta = function (n2k, state, customPgns = {}) {
+var toDelta = function (n2k, state, customPgns = {}, options) {
   try {
+    if (options && options.quirks && options.quirks.length) {
+      n2k = applyQuirksToN2k(n2k, options.quirks)
+    }
     var theMappings, customMappings
 
     theMappings = [
@@ -385,8 +412,12 @@ const metaPGNs = {
 
 exports.N2kMapper = N2kMapper
 exports.toDelta = toDelta
+exports.applyQuirksToN2k = applyQuirksToN2k
+exports.toCanboatQuirks = toCanboatQuirks
+exports.toCanboatOptions = toCanboatOptions
 exports.toDeltaTransformer = function (options, state) {
+  const quirks = toCanboatQuirks(options)
   return through(function (data) {
-    this.queue(exports.toDelta(data, state))
+    this.queue(exports.toDelta(data, state, {}, { quirks }))
   })
 }
