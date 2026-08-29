@@ -2,7 +2,8 @@
   "name": "@signalk/n2k-signalk",
   "version": "4.7.0",
   "description": "NMEA 2000 to SignalK conversion library",
-  "main": "dist/n2kMapper.js",
+  "main": "dist/index.js",
+  "types": "dist/n2kMapper.d.ts",
   "scripts": {
     "test": "mocha",
     "format": "prettier-standard '*.js*' 'pgns/**/*.[j,t]s' 'test/**/*.js*' 'lowrance/**/*.js*' 'raymarine/**/*.js*' 'fusion/**/*.ts*'",
@@ -17,10 +18,15 @@
     "2000",
     "n2k",
     "signalk",
+    "signalk-node-server-plugin",
     "navigation",
     "sailing",
     "boating"
   ],
+  "signalk-plugin-enabled-by-default": true,
+  "signalk": {
+    "displayName": "NMEA 2000 to Signal K"
+  },
   "author": "teppo.kurki@iki.fi",
   "license": "Apache-2.0",
   "repository": "https://github.com/SignalK/n2k-signalk",
